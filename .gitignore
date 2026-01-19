@@ -1,1 +1,11 @@
 __pycache__
+.venv
+.vscode
+.cursor
+.DS_Store
+.idea
+.gradio
+
+**.whl
+**.ply
+
