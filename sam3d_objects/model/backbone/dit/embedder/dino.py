@@ -29,8 +29,13 @@ class Dino(torch.nn.Module):
             warnings.simplefilter("ignore")
             
             logger.info(f"Loading DINO model: {dino_model} from {repo_or_dir} (source: {source})")
+            checkpoint_path = None
             if backbone_kwargs:
-                logger.info(f"DINO backbone kwargs: {backbone_kwargs}")
+                logger.info(f"DINO backbone kwargs (before): {backbone_kwargs}")
+                if "checkpoint_path" in backbone_kwargs:
+                    checkpoint_path = backbone_kwargs.get("checkpoint_path")
+                    del backbone_kwargs["checkpoint_path"]
+                logger.info(f"DINO backbone kwargs (after): {backbone_kwargs}")
             
             self.backbone = torch.hub.load(
                 repo_or_dir=repo_or_dir,
@@ -39,6 +44,8 @@ class Dino(torch.nn.Module):
                 verbose=False,
                 **backbone_kwargs,
             )
+            state_dict = torch.load(checkpoint_path, map_location="cpu")
+            self.backbone.load_state_dict(state_dict, strict=False)
             
             # Log model properties after loading
             logger.info(f"Loaded DINO model - type: {type(self.backbone)}, "
