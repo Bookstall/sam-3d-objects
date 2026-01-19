@@ -3,6 +3,7 @@ import torch
 import numpy as np
 from plyfile import PlyData, PlyElement
 from .general_utils import inverse_sigmoid, strip_symmetric, build_scaling_rotation
+from sam3d_objects.model.backbone.tdfy_dit.renderers.sh_utils import SH2RGB
 
 
 class Gaussian:
@@ -148,15 +149,38 @@ class Gaussian:
         scale = torch.log(self.get_scaling).detach().cpu().numpy()
         rotation = (self._rotation + self.rots_bias[None, :]).detach().cpu().numpy()
 
+        # Convert spherical harmonics coefficients to RGB colors for MeshLab compatibility
+        # f_dc shape: (N, 3) where N is the number of points
+        # SH2RGB converts SH coefficients to RGB in [0, 1] range
+        f_dc_tensor = torch.from_numpy(f_dc[:, :3])  # Take first 3 channels (RGB)
+        rgb_colors = SH2RGB(f_dc_tensor).numpy()  # Convert to RGB [0, 1]
+        rgb_colors = np.clip(rgb_colors, 0.0, 1.0)  # Ensure valid range
+        # Convert to uint8 [0, 255] for PLY format
+        rgb_colors_uint8 = (rgb_colors * 255.0).astype(np.uint8)
+
+        # Create dtype with original attributes
         dtype_full = [
             (attribute, "f4") for attribute in self.construct_list_of_attributes()
         ]
+        # Add standard RGB color attributes for MeshLab compatibility
+        dtype_full.extend([("red", "u1"), ("green", "u1"), ("blue", "u1")])
 
+        # Create elements array with all fields
         elements = np.empty(xyz.shape[0], dtype=dtype_full)
+        
+        # Assign original attributes by field name
         attributes = np.concatenate(
             (xyz, normals, f_dc, opacities, scale, rotation), axis=1
         )
-        elements[:] = list(map(tuple, attributes))
+        attribute_names = self.construct_list_of_attributes()
+        for i, attr_name in enumerate(attribute_names):
+            elements[attr_name] = attributes[:, i]
+        
+        # Add RGB colors to elements
+        elements["red"] = rgb_colors_uint8[:, 0]
+        elements["green"] = rgb_colors_uint8[:, 1]
+        elements["blue"] = rgb_colors_uint8[:, 2]
+        
         el = PlyElement.describe(elements, "vertex")
         PlyData([el]).write(path)
 
