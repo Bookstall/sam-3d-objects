@@ -1,30 +1,52 @@
-[build-system]
-requires = ["hatchling", "hatch-requirements-txt"]
-build-backend = "hatchling.build"
-
-[tool.hatch.envs.default.env-vars]
-PIP_EXTRA_INDEX_URL = "https://pypi.ngc.nvidia.com https://download.pytorch.org/whl/cu121"
-
-[tool.hatch.metadata]
-# for git-referenced dependencies
-allow-direct-references = true
-
 [project]
-name = "sam3d_objects"
-version = "0.0.1"
-# required for "hatch-requirements-txt" to work
-dynamic = ["dependencies", "optional-dependencies"]
+name = "sam-3d-objects"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+# NOTE: Pin to Python 3.11 because several scientific/3D deps (e.g. open3d) may
+# not provide cp312 wheels, which breaks uv resolution on Python 3.12.
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "gsplat>=1.5.3",
+    # "gsplat@git+https://gitcode.com/GitHub_Trending/gs/gsplat.git@2323de5905d5e90e035f792fe65bad0fedd413e7",
+    "loguru>=0.7.3",
+    "psutil>=7.2.1",
+    # "pytorch3d @ git+https://github.com/facebookresearch/pytorch3d.git@75ebeeaea0908c5527e7b1e305fbc7681382db47",
+    "pytorch3d@git+https://gitcode.com/gh_mirrors/py/pytorch3d.git@75ebeeaea0908c5527e7b1e305fbc7681382db47",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "tqdm>=4.67.1",
+    "flash_attn==2.8.3",
+    "omegaconf>=2.3.0",
+    "seaborn>=0.13.2",
+    "gradio>=6.3.0",
+    "hydra-core>=1.3.2",
+    "imageio>=2.37.2",
+    # "kaolin==0.18.0",
+    # NOTE: kaolin 0.18.0 is distributed via NVIDIA's custom index / find-links,
+    # not the default PyPI (or Aliyun mirror). To avoid making uv resolution
+    # unsatisfiable when adding other deps (e.g. timm), we install kaolin
+    # manually with:
+    #   uv add kaolin==0.18.0 -f https://nvidia-kaolin.s3.us-east-2.amazonaws.com/torch-2.8.0_cu128.html
+    # and keep it out of the pyproject-managed dependency set.
+    "timm>=1.0.24",
+    "trimesh>=4.11.0",
+    "optree>=0.18.0",
+    "astor>=0.8.1",
+    "opencv-python>=4.12.0.88",
+    "easydict>=1.13",
+    "plyfile>=1.1.3",
+    "spconv-cu126>=2.3.8",
+    # "utils3d==1.6"
+    # "moge"
+    "lightning>=2.6.0",
+    "xatlas>=0.0.11",
+    "pyvista>=0.46.5",
+    "igraph>=1.0.0",
+    "pymeshfix>=0.17.2",
+    "transformers==5.0.0rc2",
+]
 
-[tool.hatch.build]
-ignore-vcs = true
-include = ["**/*.py"]
-exclude = ["conftest.py", "*_test.py"]
-packages = ["sam3d_objects"]
+[tool.uv]
+index-url = "https://mirrors.aliyun.com/pypi/simple"
 
-[tool.hatch.metadata.hooks.requirements_txt]
-files = ["requirements.txt"]
-
-[tool.hatch.metadata.hooks.requirements_txt.optional-dependencies]
-p3d = ["requirements.p3d.txt"]
-inference = ["requirements.inference.txt"]
-dev = ["requirements.dev.txt"]
