@@ -1,8 +1,13 @@
 # Copyright (c) Meta Platforms, Inc. and affiliates.
 import os
+import sys
 
 # not ideal to put that here
-os.environ["CUDA_HOME"] = os.environ["CONDA_PREFIX"]
+# os.environ["CUDA_HOME"] = os.environ["CONDA_PREFIX"]
+os.environ["CUDA_HOME"] = os.environ.get(
+    "CONDA_PREFIX",
+    os.environ.get("CUDA_HOME", sys.prefix),
+)
 os.environ["LIDRA_SKIP_INIT"] = "true"
 
 import sys
@@ -17,20 +22,20 @@ import utils3d
 import shutil
 import subprocess
 import seaborn as sns
-from PIL import Image
 import numpy as np
 import gradio as gr
 import matplotlib.pyplot as plt
+import builtins
+
+from PIL import Image
 from copy import deepcopy
 from kaolin.visualize import IpyTurntableVisualizer
 from kaolin.render.camera import Camera, CameraExtrinsics, PinholeIntrinsics
-import builtins
 from pytorch3d.transforms import quaternion_multiply, quaternion_invert
 
 import sam3d_objects  # REMARK(Pierre) : do not remove this import
 from sam3d_objects.pipeline.inference_pipeline_pointmap import InferencePipelinePointMap
 from sam3d_objects.model.backbone.tdfy_dit.utils import render_utils
-
 from sam3d_objects.utils.visualization import SceneVisualizer
 
 __all__ = ["Inference"]
@@ -92,9 +97,27 @@ class Inference:
         self._pipeline: InferencePipelinePointMap = instantiate(config)
 
     def merge_mask_to_rgba(self, image, mask):
-        mask = mask.astype(np.uint8) * 255
-        mask = mask[..., None]
-        # embed mask in alpha channel
+        """
+        将输入的图像 image 和 mask 合并为 RGBA 格式
+        Args:
+            image: 输入的图像
+            mask: 输入的 mask
+        Returns:
+            rgba_image: 合并后的 RGBA 图像
+        """
+        # 将输入的图像转换为 numpy 数组
+        image = np.asarray(image)
+        if mask is not None:
+            # 如果提供了 mask，将其转为 uint8 并放大到 255（便于作为 alpha 通道）
+            mask = mask.astype(np.uint8) * 255
+            if mask.ndim == 2:
+                # 如果 mask 是二维的，增加一个通道维度以匹配图像 shape
+                mask = mask[..., None]
+        else:
+            # 如果没有 mask，将 alpha 通道设置为 255（全不透明）
+            h, w = image.shape[:2]
+            mask = np.full((h, w, 1), 255, dtype=np.uint8)
+        # 将 mask 嵌入为 alpha 通道，拼接为 RGBA 格式
         rgba_image = np.concatenate([image[..., :3], mask], axis=-1)
         return rgba_image
 
