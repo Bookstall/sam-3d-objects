@@ -25,7 +25,7 @@ xatlas>=0.0.11
 pyvista>=0.46.5
 igraph>=1.0.0
 pymeshfix>=0.17.2
-transformers==5.0.0rc2
+transformers==5.1.0
 
 -e ./third_parts/utils3d
 -e ./third_parts/MoGe
