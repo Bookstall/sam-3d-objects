@@ -146,6 +146,57 @@ def test_sam3_with_text_only_prompts():
     masked_image_only.save("masked_image_only.png")
 
 
+def test_sam3_with_text_only_prompts_new():
+    """
+    Text-Only Prompts
+    """
+    # Load image
+    image_url = "/data/machine_learning/cpx/sam-3d-objects/notebook/images/shutterstock_stylish_kidsroom_1640806567/image.png"
+    image = Image.open(image_url).convert("RGB")
+
+    # Segment using text prompt
+    # text = "小熊"
+    # text = "bear"
+    # text = "The bear on the right"
+    # text = "The bear on the right, not the left"
+    text = "The white bear on the right"
+    # text = ["ear", "dial"]
+    inputs = processor(
+        images=image, 
+        text=text, 
+        return_tensors="pt"
+    ).to(device)
+
+    with torch.no_grad():
+        outputs = model(**inputs)
+
+    # Post-process results
+    results = processor.post_process_instance_segmentation(
+        outputs,
+        threshold=0.5,
+        mask_threshold=0.5,
+        target_sizes=inputs.get("original_sizes").tolist()
+    )[0]
+
+    logger.debug(f"keys of results: {results.keys()}")
+    # Results contain:
+    # - masks: Binary masks resized to original image size
+    # - boxes: Bounding boxes in absolute pixel coordinates (xyxy format)
+    # - scores: Confidence scores
+
+    logger.debug(f"Found {len(results['masks'])} objects")
+
+    if len(results['masks']) == 0:
+        logger.warning("没有找到任何实例掩码")
+        return
+
+    masked_images = overlay_masks(image=image, masks=results['masks'])
+    masked_images.save("masked_image_new.png")
+
+    masked_image_only = get_masked_image_only(image=image, masks=results['masks'])
+    masked_image_only.save("masked_image_only_new.png")
+
+
 def test_sam3_batch_with_text_only_prompts():
     """
     Batch Inference: Text-Only Prompts
@@ -467,6 +518,8 @@ def test_sam2_with_multiple_points():
 if __name__ == "__main__":
     # test_sam3_with_text_only_prompts()
 
+    test_sam3_with_text_only_prompts_new()
+
     # test_sam3_batch_with_text_only_prompts()
 
     # test_sam3_with_semantic_segmentation_output()
@@ -479,5 +532,5 @@ if __name__ == "__main__":
 
     # test_sam3_with_multiple_points()
 
-    test_sam2_with_multiple_points()
+    # test_sam2_with_multiple_points()
 
