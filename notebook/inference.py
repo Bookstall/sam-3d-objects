@@ -387,7 +387,7 @@ def load_single_mask(folder_path, index=0, extension=".png"):
 def load_masks(folder_path, indices_list=None, extension=".png"):
     masks = []
     indices_list = [] if indices_list is None else list(indices_list)
-    if not len(indices_list) > 0:  # get all all masks if not provided
+    if not len(indices_list) > 0:  # get all masks if not provided
         idx = 0
         while os.path.exists(os.path.join(folder_path, f"{idx}{extension}")):
             indices_list.append(idx)

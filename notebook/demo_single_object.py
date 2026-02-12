@@ -4,6 +4,8 @@ import os
 import shutil
 import sys
 
+from loguru import logger
+
 # import sam-3d-objects code
 sys.path.append("/data/machine_learning/cpx/sam-3d-objects")
 
@@ -44,22 +46,21 @@ inference = Inference(config_path, compile=False)
 # Load Original Image and Mask Image
 IMAGE_PATH = "./images/shutterstock_stylish_kidsroom_1640806567/image.png"
 IMAGE_NAME = os.path.basename(os.path.dirname(IMAGE_PATH))
-print(f"IMAGE_NAME: {IMAGE_NAME}")
+logger.debug(f"IMAGE_NAME: {IMAGE_NAME}")
 
 # image ndarray (4480, 6720, 3) [[[234 214 187], ...]]
 image = load_image(IMAGE_PATH)
 # mask: ndarray (4480, 6720) [[False False], [False, False]]
-# mask = load_single_mask(os.path.dirname(IMAGE_PATH), index=14)
-mask = None
+mask = load_single_mask(os.path.dirname(IMAGE_PATH), index=14)
+# mask = None # 不指定 mask
 
 # run model
 output = inference(image, mask, seed=42)
-print(f"keys of output: {output.keys()}")
+logger.debug(f"keys of output: {output.keys()}")
 
 # export gaussian splat (as point cloud)
 # 导出高斯溅射（作为点云）
 output["gs"].save_ply(f"./gaussians/single/{IMAGE_NAME}_new.ply")
-
 
 # 保存为 GIF 动画
 # render gaussian splat
@@ -87,5 +88,9 @@ imageio.mimsave(
     loop=0,  # 0 means loop indefinitely
 )
 
+# export glb
+logger.debug(f"type of output['glb']: {type(output['glb'])}")
+output["glb"].export(f"./gaussians/single/{IMAGE_NAME}.glb")
+logger.debug(f"Exported GLB to: ./gaussians/single/{IMAGE_NAME}.glb")
 
 
